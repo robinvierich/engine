@@ -1,1 +1,3 @@
 *.opendb
+Debug/
+engine_project/Debug/
