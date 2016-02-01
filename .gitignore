@@ -1,3 +1,5 @@
 *.opendb
 Debug/
+Release/
 engine_project/Debug/
+engine_project/Release/
