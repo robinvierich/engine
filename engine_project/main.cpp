@@ -2,7 +2,9 @@
 #include <tchar.h>
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
+#include <vector>
 
 #include <GL\glew.h>
 #include <GL\wglew.h>
@@ -19,19 +21,61 @@
    OutputDebugString( os_.str().c_str() );  \
 }
 
+// Pulled from stackoverflow (for SHAME!!) with some modifications
+void loadBmp(const char* filepath, std::vector<unsigned char>* outPixels, int* outWidth, int* outHeight)
+{
+    std::ifstream hFile(filepath, std::ios::in | std::ios::binary);
+    if (!hFile.is_open()) throw std::invalid_argument("Error: File Not Found.");
+
+    hFile.seekg(0, std::ios::end);
+    int length = hFile.tellg();
+    hFile.seekg(0, std::ios::beg);
+    std::vector<std::uint8_t> fileInfo(length);
+    hFile.read(reinterpret_cast<char*>(fileInfo.data()), 54);
+
+    if (fileInfo[0] != 'B' && fileInfo[1] != 'M')
+    {
+        hFile.close();
+        throw std::invalid_argument("Error: Invalid File Format. Bitmap Required.");
+    }
+
+    if (fileInfo[28] != 24 && fileInfo[28] != 32)
+    {
+        hFile.close();
+        throw std::invalid_argument("Error: Invalid File Format. 24 or 32 bit Image Required.");
+    }
+
+    short bitsPerPixel = fileInfo[28];
+    *outWidth = fileInfo[18] + (fileInfo[19] << 8);
+    *outHeight = fileInfo[22] + (fileInfo[23] << 8);
+    std::uint32_t pixelsOffset = fileInfo[10] + (fileInfo[11] << 8);
+    std::uint32_t size = ((*outWidth * bitsPerPixel + 31) / 32) * 4 * (*outHeight);
+    outPixels->resize(size);
+
+    hFile.seekg(pixelsOffset, std::ios::beg);
+    hFile.read(reinterpret_cast<char*>(outPixels->data()), size);
+    hFile.close();
+}
+
 
 const char* vertex_shader =
 "#version 400\n"
 "in vec3 vp;"
+"in vec2 vertTexCoord;"
+"out vec2 fragTexCoord;"
 "void main () {"
+"  fragTexCoord = vertTexCoord;"
 "  gl_Position = vec4 (vp, 1.0);"
 "}";
 
 const char* fragment_shader =
 "#version 400\n"
+"uniform sampler2D tex;" //this is the texture
+"in vec2 fragTexCoord;" //this is the texture coord
 "out vec4 frag_colour;"
 "void main () {"
-"  frag_colour = vec4 (0.5, 0.0, 0.5, 1.0);"
+"   frag_colour = texture(tex, fragTexCoord);"
+//"  frag_colour = vec4 (0.5, 0.0, 0.5, 1.0);"
 "}";
 
 GLuint vbo = 0; // Vertex buffer object. Stores some vertex data. Can be position, normal, UV, ... In this case, position.
@@ -41,41 +85,21 @@ GLuint vShader = 0;
 GLuint fShader = 0;
 GLuint shaderProgram = 0;
 
-float points[] = { // some 3d points to draw
-    0.0f, 0.0f, 0.0f,
-    0.5f, 0.5f, 0.0f, 
-    0.5f, 0.0f, 0.0f,
+float points[] = { // some points to draw
+//   x     y     z       u     v
+    0.0f, 0.0f, -0.1f,   0.0f, 0.0f,
+    0.5f, 0.5f, -0.1f,   1.0f, 1.0f,
+    0.5f, 0.0f, -0.1f,   1.0f, 0.0f,
 };
 
+GLuint mappedtexture;
+
 void setupScene() {
+    static const GLuint POSITION_ATTRIB_INDEX = 0;
+    static const GLuint UV_ATTRIB_INDEX = 1;
+
     glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-    glGenVertexArrays(1, &vao); // Generate '1' vertex array for the VAO and save the new, unique name (id) in 'vao'
-    glBindVertexArray(vao); // make this vertex array active (set a global variable in opengl state machine which is used by proceeding functions - ex. vertex_array = vao)
-
-    glGenBuffers(1, &vbo); // create (1) buffer and save the 'name' in (vbo)
-    glBindBuffer(GL_ARRAY_BUFFER, vbo); // make this array buffer active (global variable in opengl state maching - ex. array_buffer = vbo
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW);
-    // allocate (9) (float)s of memory for the buffer, initialize with (points), and state that the data will NOT be modified (GL_STATIC_DRAW)
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-        // in the active vertex attribute pointer (vao currently), define the data structure
-        // At index (0), the attribute consists of (3) (GL_FLOAT)s that are NOT normalized (GL_FALSE). 
-        // Between each attribute - a vec3 representing position - there are (0) bytes, AND the array starts at index 0 (NULL??). 
-        //    Ex: data for this attribute looks like: [(NO OFFSET HERE) x0, y0, z0, (NO STRIDE HERE) x1, y1, z1, ...]
-
-    // In general, VAOs look something like this (we just set up the 1st VAO index -- a position array):
-    // VAO = [
-    //   [ x0, y0, z0, x1, y1, z1, ...], - positions
-    //   [ nx0, ny0, nz0, nx1, ny1, nz1, ...], - Normals
-    //   ...
-    // ]
-
-    glEnableVertexAttribArray(0); // enable the attribute at index 0 within the vao vertex array (position in this case). If not enabled, will not be used when rendering during draw calls
-                                  //glBindBuffer(GL_ARRAY_BUFFER, vbo); // make the vbo active
-
-
-    
     // create and link shaders
     vShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vShader, 1, &vertex_shader, NULL);
@@ -89,6 +113,105 @@ void setupScene() {
     glAttachShader(shaderProgram, fShader);
     glAttachShader(shaderProgram, vShader);
     glLinkProgram(shaderProgram);
+
+    if (glGetError() != GL_NO_ERROR) {
+        int a = 1;
+        a += 1;
+    }
+
+    // check for shader issues
+    GLint status;
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &status);
+    if (status == GL_FALSE) {
+        std::string msg("Program linking failure: ");
+
+        GLint infoLogLength;
+        glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &infoLogLength);
+        char* strInfoLog = new char[infoLogLength + 1];
+        glGetProgramInfoLog(shaderProgram, infoLogLength, NULL, strInfoLog);
+        msg += strInfoLog;
+        delete[] strInfoLog;
+
+        glDeleteProgram(shaderProgram); shaderProgram = 0;
+        throw std::runtime_error(msg);
+    }
+
+    glUseProgram(shaderProgram);
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    /// LOAD A TEXTURE
+    int width = 256, height = 256;//0;
+    std::vector<unsigned char> pixels;
+    loadBmp("F:\\code\\engine_project\\Debug\\smiley.bmp", &pixels, &width, &height);
+
+    glGenTextures(1, &mappedtexture);
+
+    glBindTexture(GL_TEXTURE_2D, mappedtexture);
+    // clear the texture (image of 0s)
+
+    // super haxx on size here
+    //char pixelData[256 * 256 * 3];
+
+    unsigned char* pixelData = pixels.data();
+
+    //for (int i = 0; i < (width * height) * 3; i += 3) {
+    //    pixelData[i + 0] = 0xFF; // R
+    //    pixelData[i + 1] = 0xFF; // G
+    //    pixelData[i + 2] = 0xFF; // B
+    //}
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB4, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixelData);//pixels.data());
+
+                                                                                                   // filter image
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    GLuint uniformLocation = glGetUniformLocation(shaderProgram, "tex");
+    glUniform1i(uniformLocation, 3);
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Create vao + vbos for position and UV data
+    GLuint vpLocation = glGetAttribLocation(shaderProgram, "vp");
+    GLuint vertTexCoordLocation = glGetAttribLocation(shaderProgram, "vertTexCoord");
+
+    //glBindAttribLocation(shaderProgram, POSITION_ATTRIB_INDEX, "vp");
+    //glBindAttribLocation(shaderProgram, UV_ATTRIB_INDEX, "vertTexCoord");
+
+    glGenVertexArrays(1, &vao); // Generate '1' vertex array for the VAO and save the new, unique name (id) in 'vao'
+    glBindVertexArray(vao); // make this vertex array active (set a global variable in opengl state machine which is used by proceeding functions - ex. vertex_array = vao)
+
+    glGenBuffers(1, &vbo); // create (1) buffer and save the 'name' in (vbo)
+    glBindBuffer(GL_ARRAY_BUFFER, vbo); // make this array buffer active (global variable in opengl state maching - ex. array_buffer = vbo
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+    // allocate (9) (float)s of memory for the buffer, initialize with (points), and state that the data will NOT be modified (GL_STATIC_DRAW)
+
+    glEnableVertexAttribArray(vpLocation); // enable the attribute at index 0 within the vao vertex array (position in this case). If not enabled, will not be used when rendering during draw calls
+                                  //glBindBuffer(GL_ARRAY_BUFFER, vbo); // make the vbo active
+
+    glVertexAttribPointer(vpLocation, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), NULL);
+        // this is used to bind vertex attributes to the shader 
+        // in the active vertex attribute object (vao currently), define the data structure
+        // At index (0), the attribute consists of (3) (GL_FLOAT)s that are NOT normalized (GL_FALSE). 
+        // Between each attribute - a vec3 representing position - there are (0) bytes, AND the array starts at index 0 (NULL??). 
+        //    Ex: data for this attribute looks like: [(NO OFFSET HERE) x0, y0, z0, (NO STRIDE HERE) x1, y1, z1, ...]
+
+    // In general, VAOs look something like this (we just set up the 1st VAO index -- a position array):
+    // VAO = [
+    //   [ x0, y0, z0, x1, y1, z1, ...], - positions
+    //   [ nx0, ny0, nz0, nx1, ny1, nz1, ...], - Normals
+    //   ...
+    // ]
+
+    glEnableVertexAttribArray(vertTexCoordLocation); // enable the attribute at index 0 within the vao vertex array (position in this case). If not enabled, will not be used when rendering during draw calls
+                                                      //glBindBuffer(GL_ARRAY_BUFFER, vbo); // make the vbo active
+
+    glVertexAttribPointer(vertTexCoordLocation, 2, GL_FLOAT, GL_TRUE, 5 * sizeof(GLfloat), (const GLvoid*)(3 * sizeof(GLfloat)));
+
+    // unbind the VAO
+    glBindVertexArray(0);
 }
 
 
@@ -164,6 +287,8 @@ ovrHmdDesc hmdDesc;
 ovrTexture textures[2];
 
 ovrSwapTextureSet * pTextureSet = 0;
+
+unsigned __int64 frameIndex = 0;
 
 void initOcr() {
     ovrResult result = ovr_Initialize(nullptr);
@@ -244,45 +369,41 @@ void initOcr() {
     layer.Viewport[1] = rightEyeViewport;
 }
 
-void renderTriangle() {
+inline void renderTriangle() {
 
     glUseProgram(shaderProgram); // set our shader program to be the current shaders
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // TODO: COMMENT ALL THESE LINES. THEY MAKE TEXTURE MAPPING WORK
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, mappedtexture);
+    GLuint uniformLocation = glGetUniformLocation(shaderProgram, "tex");
+    glUniform1i(uniformLocation, 3);
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     glBindVertexArray(vao); // set (vao) to be the current vertex attribute object
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo); // make this array buffer active (global variable in opengl state maching - ex. array_buffer = vbo
-    glBufferData(GL_ARRAY_BUFFER, 9 * sizeof(float), points, GL_STATIC_DRAW); // update values in buffer
-
-                                                                              // set up our list of drawBuffers (buffers that GL will draw to?)
-    GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
-    glDrawBuffers(1, drawBuffers); // there is 1 draw buffer, contained within drawBuffers
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW); // update values in buffer
 
     // Draw (3) (GL_TRIANGLES). Get the position data from the currently bound vertex array (vao), and start reading at index (0)
     //   What happens if we have normals as well??
     glDrawArrays(GL_TRIANGLES, 0, 3);
+
+   glBindVertexArray(0);
+   glBindTexture(GL_TEXTURE_2D, 0);
+
 }
+
 
 void renderScene() {
 
-
-    
-    // Query the HMD for the current tracking state.
-    double displayMidpointSeconds = ovr_GetPredictedDisplayTime(session, 0);
-    ovrTrackingState hmdTrackingState = ovr_GetTrackingState(session, displayMidpointSeconds, ovrFalse);
-
-    // calculate the eye poses from the current headpose and hmdToEyeViewOffset
-    ovr_CalcEyePoses(hmdTrackingState.HeadPose.ThePose, hmdToEyeViewOffset, layer.RenderPose);
-
-    if (hmdTrackingState.StatusFlags & ovrStatus_PositionConnected) {
-        ovrPoseStatef pose = hmdTrackingState.HeadPose;
-        // debug code - update one vertex of the triangle to match normalized ovr position
-        points[0] = pose.ThePose.Position.x;
-        points[1] = pose.ThePose.Position.y;
-        points[2] = pose.ThePose.Position.z;
-    }
+    glClearColor(0.0, 0.0, 0.0, 1.0);
 
     // Increment to use next texture, just before writing
-    pTextureSet->CurrentIndex = (pTextureSet->CurrentIndex + 1) % pTextureSet->TextureCount;
+    pTextureSet->CurrentIndex = (pTextureSet->CurrentIndex+1) % pTextureSet->TextureCount;
+
+    int eye = (pTextureSet->CurrentIndex + 1) % pTextureSet->TextureCount;
 
     // grab left eye GL texture from the textureset
     ovrGLTexture* tex = (ovrGLTexture*)&pTextureSet->Textures[pTextureSet->CurrentIndex];
@@ -293,6 +414,21 @@ void renderScene() {
     double eyeViewportWidth = layer.Viewport[pTextureSet->CurrentIndex].Size.w;
     double eyeViewportHeight = layer.Viewport[pTextureSet->CurrentIndex].Size.h;
 
+    // Query the HMD for the current tracking state.
+    double displayMidpointSeconds = ovr_GetPredictedDisplayTime(session, frameIndex);
+    ovrTrackingState hmdTrackingState = ovr_GetTrackingState(session, displayMidpointSeconds, ovrFalse);
+
+    // calculate the eye poses from the current headpose and hmdToEyeViewOffset
+    ovr_CalcEyePoses(hmdTrackingState.HeadPose.ThePose, hmdToEyeViewOffset, layer.RenderPose);
+
+    if (hmdTrackingState.StatusFlags & ovrStatus_PositionConnected) {
+        ovrPoseStatef pose = hmdTrackingState.HeadPose;
+        // debug code - update one vertex of the triangle to match normalized ovr position
+        points[0] =  layer.RenderPose[eye].Position.x;
+        points[1] =  layer.RenderPose[eye].Position.y;
+        //points[2] =  layer.RenderPose[eye].Position.z;
+    }
+
     // bind a texture to write to
     glBindTexture(GL_TEXTURE_2D, texId);
     // clear the texture (image of 0s)
@@ -301,6 +437,10 @@ void renderScene() {
     // filter image
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    //glBindTexture(GL_TEXTURE_2D, 0);
 
     // bind a custom framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -308,23 +448,26 @@ void renderScene() {
     // set our texture to our framebuffer's 'colour attachment'? Attach a 2d texture to the fbo
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texId, 0);
 
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // clear the current color buffer (default framebuffer), depth buffer, and stencil buffer
 
     glViewport(eyeViewportX, eyeViewportY, eyeViewportWidth, eyeViewportHeight);
+    // set up our list of drawBuffers (buffers that GL will draw to?)
+    //GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
+    //glDrawBuffers(1, drawBuffers); // there is 1 draw buffer, contained within drawBuffers
 
     renderTriangle();
 
     ovrLayerHeader* layers = &layer.Header;
     ovrResult result = ovr_SubmitFrame(session, 0, nullptr, &layers, 1);
 
-    glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
+    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // clear the current color buffer (default framebuffer), depth buffer, and stencil buffer
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // clear the current color buffer (default framebuffer), depth buffer, and stencil buffer
+    //glViewport(0, 0, windowWidth, windowHeight);
+    //renderTriangle();
 
-    glViewport(0, 0, windowWidth, windowHeight);
-    renderTriangle();
-
-    SwapBuffers(hdc); // windows command
+    //SwapBuffers(hdc); // windows command -- SUPER BAD FOR RIFT AS (I think) IT'S HANDLED IN ovr_SubmitFrame
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -412,6 +555,17 @@ int WINAPI WinMain(HINSTANCE hInstance,
     MSG msg;
     bool running = true; // keep track of our own 'running' var
 
+    double t = 0;
+    double dt = 0;
+
+    double desiredDt = 1 / 75.0;
+
+    LARGE_INTEGER prevCount;
+    LARGE_INTEGER count;
+    LARGE_INTEGER secondsPerCount;
+    
+    QueryPerformanceCounter(&prevCount);
+
     while (running) { 
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) { // if there is a message, and handle it (why don't we need to consume it?! -- i.e. GetMessage)
             if (msg.message == WM_QUIT) {
@@ -421,7 +575,25 @@ int WINAPI WinMain(HINSTANCE hInstance,
                 DispatchMessage(&msg);
             }
         } else { // if no message, render!
+            QueryPerformanceFrequency(&secondsPerCount);
+            QueryPerformanceCounter(&count);
+
+            if (count.QuadPart < prevCount.QuadPart) {
+                // overflow - worst case we skip 1 frame.. not ideal
+                prevCount = count;
+                continue;
+            }
+
+            dt = (double)(count.QuadPart - prevCount.QuadPart) / (double)secondsPerCount.QuadPart;
+            if (dt < desiredDt) {
+                continue;
+            }
+
             renderScene();
+
+            t += dt;
+            prevCount = count;
+            frameIndex++;
         }
     }
 
