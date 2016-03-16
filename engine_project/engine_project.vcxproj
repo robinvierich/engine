@@ -79,7 +79,8 @@
       <AdditionalIncludeDirectories>$(SolutionDir)OculusSDK\LibOVR\Include;F:\code\engine_project\glew-1.13.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <PostBuildEvent>
-      <Command>COPY /Y /V $(SolutionDir)glew-1.13.0\bin\Release\Win32\glew32.dll $(OutDir)</Command>
+      <Command>COPY /Y /V $(SolutionDir)glew-1.13.0\bin\Release\Win32\glew32.dll $(OutDir)
+COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
     </PostBuildEvent>
     <Link>
       <AdditionalDependencies>opengl32.lib;glew32.lib;LibOVR.lib;%(AdditionalDependencies)</AdditionalDependencies>
