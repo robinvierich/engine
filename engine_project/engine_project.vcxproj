@@ -91,7 +91,16 @@ COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>C:\engine\glew-2.0.0\include;C:\engine\OculusSDK\LibOVR\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>C:\engine\OculusSDK\LibOVR\Lib\Windows\x64\Release\VS2015;C:\engine\glew-2.0.0\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;LibOVR.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>COPY /Y /V $(SolutionDir)glew-2.0.0\bin\Release\x64\glew32.dll $(OutDir)
+COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
