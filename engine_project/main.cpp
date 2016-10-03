@@ -143,7 +143,7 @@ void setupScene() {
     /// LOAD A TEXTURE
     int width = 256, height = 256;//0;
     std::vector<unsigned char> pixels;
-    loadBmp("F:\\code\\engine_project\\Debug\\smiley.bmp", &pixels, &width, &height);
+    loadBmp("C:\\engine\\x64\\Debug\\smiley.bmp", &pixels, &width, &height);
 
     glGenTextures(1, &mappedtexture);
 
@@ -395,79 +395,85 @@ inline void renderTriangle() {
 
 }
 
+void setupVrFrame() {
+	// Increment to use next texture, just before writing
+	pTextureSet->CurrentIndex = (pTextureSet->CurrentIndex + 1) % pTextureSet->TextureCount;
+
+	int eye = (pTextureSet->CurrentIndex + 1) % pTextureSet->TextureCount;
+
+	// grab left eye GL texture from the textureset
+	ovrGLTexture* tex = (ovrGLTexture*)&pTextureSet->Textures[pTextureSet->CurrentIndex];
+	GLuint texId = tex->OGL.TexId;
+
+	double eyeViewportX = layer.Viewport[pTextureSet->CurrentIndex].Pos.x;
+	double eyeViewportY = layer.Viewport[pTextureSet->CurrentIndex].Pos.y;
+	double eyeViewportWidth = layer.Viewport[pTextureSet->CurrentIndex].Size.w;
+	double eyeViewportHeight = layer.Viewport[pTextureSet->CurrentIndex].Size.h;
+
+	// Query the HMD for the current tracking state.
+	double displayMidpointSeconds = ovr_GetPredictedDisplayTime(session, frameIndex);
+	ovrTrackingState hmdTrackingState = ovr_GetTrackingState(session, displayMidpointSeconds, ovrFalse);
+
+	// calculate the eye poses from the current headpose and hmdToEyeViewOffset
+	ovr_CalcEyePoses(hmdTrackingState.HeadPose.ThePose, hmdToEyeViewOffset, layer.RenderPose);
+
+	if (hmdTrackingState.StatusFlags & ovrStatus_PositionConnected) {
+		ovrPoseStatef pose = hmdTrackingState.HeadPose;
+		// debug code - update one vertex of the triangle to match normalized ovr position
+		points[0] = layer.RenderPose[eye].Position.x;
+		points[1] = layer.RenderPose[eye].Position.y;
+		//points[2] =  layer.RenderPose[eye].Position.z;
+	}
+
+	// bind a texture to write to
+	glBindTexture(GL_TEXTURE_2D, texId);
+	// clear the texture (image of 0s)
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, eyeViewportWidth, eyeViewportHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+	// filter image
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	//glBindTexture(GL_TEXTURE_2D, 0);
+
+	// bind a custom framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+	// set our texture to our framebuffer's 'colour attachment'? Attach a 2d texture to the fbo
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texId, 0);
+
+	glViewport(eyeViewportX, eyeViewportY, eyeViewportWidth, eyeViewportHeight);
+}
+
+void submitVrFrame() {
+	ovrLayerHeader* layers = &layer.Header;
+	ovrResult result = ovr_SubmitFrame(session, 0, nullptr, &layers, 1);
+}
 
 void renderScene() {
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
-
-    // Increment to use next texture, just before writing
-    pTextureSet->CurrentIndex = (pTextureSet->CurrentIndex+1) % pTextureSet->TextureCount;
-
-    int eye = (pTextureSet->CurrentIndex + 1) % pTextureSet->TextureCount;
-
-    // grab left eye GL texture from the textureset
-    ovrGLTexture* tex = (ovrGLTexture*)&pTextureSet->Textures[pTextureSet->CurrentIndex];
-    GLuint texId = tex->OGL.TexId;
-
-    double eyeViewportX = layer.Viewport[pTextureSet->CurrentIndex].Pos.x;
-    double eyeViewportY = layer.Viewport[pTextureSet->CurrentIndex].Pos.y;
-    double eyeViewportWidth = layer.Viewport[pTextureSet->CurrentIndex].Size.w;
-    double eyeViewportHeight = layer.Viewport[pTextureSet->CurrentIndex].Size.h;
-
-    // Query the HMD for the current tracking state.
-    double displayMidpointSeconds = ovr_GetPredictedDisplayTime(session, frameIndex);
-    ovrTrackingState hmdTrackingState = ovr_GetTrackingState(session, displayMidpointSeconds, ovrFalse);
-
-    // calculate the eye poses from the current headpose and hmdToEyeViewOffset
-    ovr_CalcEyePoses(hmdTrackingState.HeadPose.ThePose, hmdToEyeViewOffset, layer.RenderPose);
-
-    if (hmdTrackingState.StatusFlags & ovrStatus_PositionConnected) {
-        ovrPoseStatef pose = hmdTrackingState.HeadPose;
-        // debug code - update one vertex of the triangle to match normalized ovr position
-        points[0] =  layer.RenderPose[eye].Position.x;
-        points[1] =  layer.RenderPose[eye].Position.y;
-        //points[2] =  layer.RenderPose[eye].Position.z;
-    }
-
-    // bind a texture to write to
-    glBindTexture(GL_TEXTURE_2D, texId);
-    // clear the texture (image of 0s)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8, eyeViewportWidth, eyeViewportHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
-
-    // filter image
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    //glBindTexture(GL_TEXTURE_2D, 0);
-
-    // bind a custom framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-
-    // set our texture to our framebuffer's 'colour attachment'? Attach a 2d texture to the fbo
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texId, 0);
-
-
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // clear the current color buffer (default framebuffer), depth buffer, and stencil buffer
 
-    glViewport(eyeViewportX, eyeViewportY, eyeViewportWidth, eyeViewportHeight);
+	//setupVrFrame();
+    
     // set up our list of drawBuffers (buffers that GL will draw to?)
     //GLenum drawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
     //glDrawBuffers(1, drawBuffers); // there is 1 draw buffer, contained within drawBuffers
 
-    renderTriangle();
+    // renderTriangle();
 
-    ovrLayerHeader* layers = &layer.Header;
-    ovrResult result = ovr_SubmitFrame(session, 0, nullptr, &layers, 1);
+	//submitVrFrame();
 
-    //glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // clear the current color buffer (default framebuffer), depth buffer, and stencil buffer
-    //glViewport(0, 0, windowWidth, windowHeight);
-    //renderTriangle();
+    glViewport(0, 0, windowWidth, windowHeight);
+    renderTriangle();
 
-    //SwapBuffers(hdc); // windows command -- SUPER BAD FOR RIFT AS (I think) IT'S HANDLED IN ovr_SubmitFrame
+    SwapBuffers(hdc); // windows command -- SUPER BAD FOR RIFT AS IT'S HANDLED IN ovr_SubmitFrame
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -567,7 +573,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     QueryPerformanceCounter(&prevCount);
 
     while (running) { 
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) { // if there is a message, and handle it (why don't we need to consume it?! -- i.e. GetMessage)
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) { // if there is a message, and handle it (why don't we need to consume it?! -- as is done in GetMessage)
             if (msg.message == WM_QUIT) {
                 running = false;
             } else {
