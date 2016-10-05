@@ -91,10 +91,10 @@ COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\engine\glew-2.0.0\include;C:\engine\OculusSDK\LibOVR\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)glew-2.0.0\include;$(SolutionDir)OculusSDK\LibOVR\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>C:\engine\OculusSDK\LibOVR\Lib\Windows\x64\Release\VS2015;C:\engine\glew-2.0.0\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)OculusSDK\LibOVR\Lib\Windows\x64\Release\VS2015;$(SolutionDir)glew-2.0.0\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;LibOVR.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -129,11 +129,15 @@ COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="glmain.cpp" />
+    <ClCompile Include="frame.cpp" />
+    <ClCompile Include="renderer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="glmain.h" />
+    <ClInclude Include="frame.h" />
+    <ClInclude Include="renderer.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
