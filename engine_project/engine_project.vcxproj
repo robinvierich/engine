@@ -130,12 +130,14 @@ COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="frame.cpp" />
+    <ClCompile Include="ovr.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="frame.h" />
+    <ClInclude Include="ovr.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="utils.h" />
   </ItemGroup>
