@@ -130,16 +130,20 @@ COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="frame.cpp" />
+    <ClCompile Include="Matrix44f.cpp" />
     <ClCompile Include="ovr.cpp" />
     <ClCompile Include="renderer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="utils.cpp" />
+    <ClCompile Include="Vector4f.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="frame.h" />
+    <ClInclude Include="Matrix.h" />
     <ClInclude Include="ovr.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="Vector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -12,14 +12,20 @@
 
 #include "ovr.h"
 
+#include "Matrix.h"
+#include "Vector.h"
+
 const char* vertex_shader =
 "#version 400\n"
 "in vec3 vp;"
 "in vec2 vertTexCoord;"
 "out vec2 fragTexCoord;"
+"uniform mat4 projectionMatrix;"
+"uniform mat4 cameraMatrix;"
+"uniform mat4 modelMatrix;"
 "void main () {"
 "  fragTexCoord = vertTexCoord;"
-"  gl_Position = vec4 (vp, 1.0);"
+"  gl_Position = projectionMatrix * cameraMatrix * modelMatrix * vec4(vp, 1.0);"
 "}";
 
 const char* fragment_shader =
@@ -40,15 +46,36 @@ GLuint shaderProgram = 0;
 
 float points[] = { // some points to draw
 //    x     y     z       u     v
-	0.0f, 0.0f, -0.1f,   0.0f, 0.0f,
-	0.5f, 0.5f, -0.1f,   1.0f, 1.0f,
-	0.5f, 0.0f, -0.1f,   1.0f, 0.0f,
+	0.0f, 0.0f, -2.1f,   0.0f, 0.0f,
+	0.5f, 0.5f, -2.1f,   1.0f, 1.0f,
+	0.5f, 0.0f, -2.1f,   1.0f, 0.0f,
 };
 
 GLuint mappedtexture;
 
+const float PI = 3.14159;
+
+// TODO: DOCUMENT THIS FUNCTION!!
+Matrix44f createProjectionMatrix(float fov, float farPlane, float nearPlane) {
+    const float zScale = -farPlane / (farPlane - nearPlane);
+    const float zTransform = -(farPlane * nearPlane) / (farPlane - nearPlane);
+
+    const float fovScale = 1.0f / tan((fov / 2.0f) * (PI / 180.0f));
+
+    return Matrix44f(
+        fovScale,     0.0f,   0.0f,       0.0f,
+        0.0f,     fovScale,   0.0f,       0.0f,
+        0.0f,         0.0f, zScale, zTransform,
+        0.0f,         0.0f,  -1.0f,       0.0f
+    );
+}
+
+Matrix44f modelToWorld = Matrix44f::Identity();
+Matrix44f cameraToWorld = Matrix44f::Identity();
+Matrix44f cameraToScreenProj = createProjectionMatrix(60, 1, 100);
 
 void setupScene() {
+
 	static const GLuint POSITION_ATTRIB_INDEX = 0;
 	static const GLuint UV_ATTRIB_INDEX = 1;
 
@@ -91,6 +118,17 @@ void setupScene() {
 	}
 
 	glUseProgram(shaderProgram);
+
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Create uniforms for model/camera/projection matrices
+    GLuint modelMatrixUniformLocation = glGetUniformLocation(shaderProgram, "modelMatrix");
+    GLuint cameraMatrixUniformLocation = glGetUniformLocation(shaderProgram, "cameraMatrix");
+    GLuint projectionMatrixUniformLocation = glGetUniformLocation(shaderProgram, "projectionMatrix");
+    
+    glUniformMatrix4fv(modelMatrixUniformLocation, 1, GL_FALSE, modelToWorld.data());
+    glUniformMatrix4fv(cameraMatrixUniformLocation, 1, GL_FALSE, cameraToWorld.data());
+    glUniformMatrix4fv(projectionMatrixUniformLocation, 1, GL_FALSE, cameraToScreenProj.data());
 
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -213,8 +251,8 @@ inline void renderTriangle(Frame& frame) {
 
 	glUseProgram(shaderProgram); // set our shader program to be the current shaders
 
-								 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-								 // TODO: COMMENT ALL THESE LINES. THEY MAKE TEXTURE MAPPING WORK
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// TODO: COMMENT ALL THESE LINES. THEY MAKE TEXTURE MAPPING WORK
 	glActiveTexture(GL_TEXTURE3);
 	glBindTexture(GL_TEXTURE_2D, mappedtexture);
 	GLuint uniformLocation = glGetUniformLocation(shaderProgram, "tex");
@@ -223,11 +261,17 @@ inline void renderTriangle(Frame& frame) {
 
 	glBindVertexArray(vao); // set (vao) to be the current vertex attribute object
 
+
+    // send these guys down to the vshader:
+    //   model->world
+    //   -1 camera->world (i.e. world->camera)
+    //   camera->screen
+
+
 	glBindBuffer(GL_ARRAY_BUFFER, vbo); // make this array buffer active (global variable in opengl state maching - ex. array_buffer = vbo
 	glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW); // update values in buffer
 
-																		   // Draw (3) (GL_TRIANGLES). Get the position data from the currently bound vertex array (vao), and start reading at index (0)
-																		   //   What happens if we have normals as well??
+    // Draw (3) (GL_TRIANGLES). Get the position data from the currently bound vertex array (vao), and start reading at index (0)
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	glBindVertexArray(0);
@@ -261,7 +305,7 @@ void updateRenderer(Frame& frame, int windowWidth, int windowHeight) {
 
 	//submitOvrFrame();
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	// glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // clear the current color buffer (default framebuffer), depth buffer, and stencil buffer
 	glViewport(0, 0, windowWidth, windowHeight);
