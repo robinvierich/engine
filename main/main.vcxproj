@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -18,35 +18,57 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\frame.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Math\Matrix.cpp" />
+    <ClCompile Include="src\Math\Vector.cpp" />
+    <ClCompile Include="src\ovr.cpp" />
+    <ClCompile Include="src\OvrRenderer.cpp" />
+    <ClCompile Include="src\renderer.cpp" />
+    <ClCompile Include="src\utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\frame.h" />
+    <ClInclude Include="src\Math\Math.h" />
+    <ClInclude Include="src\Math\Matrix.h" />
+    <ClInclude Include="src\Math\Vector.h" />
+    <ClInclude Include="src\ovr.h" />
+    <ClInclude Include="src\OvrRenderer.h" />
+    <ClInclude Include="src\renderer.h" />
+    <ClInclude Include="src\Types.h" />
+    <ClInclude Include="src\utils.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{46C9AEF3-1709-46C1-AD7D-075996049C02}</ProjectGuid>
-    <RootNamespace>engine_project</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <RootNamespace>engine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
+    <ProjectName>main</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -69,17 +91,22 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LibraryPath>$(SolutionDir)glew-1.13.0\lib\Release\Win32;$(SolutionDir)OculusSDK\LibOVR\Lib\Windows\Win32\Release\VS2015;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)glew-2.1.0\lib\Release\Win32;$(SolutionDir)OculusSDK\LibOVR\Lib\Windows\Win32\Release\VS2015;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)src</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)OculusSDK\LibOVR\Include;F:\code\engine_project\glew-1.13.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OculusSDK\LibOVR\Include;$(SolutionDir)glew-2.1.0\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <PostBuildEvent>
-      <Command>COPY /Y /V $(SolutionDir)glew-1.13.0\bin\Release\Win32\glew32.dll $(OutDir)
+      <Command>COPY /Y /V $(SolutionDir)glew-2.1.0\bin\Release\Win32\glew32.dll $(OutDir)
 COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
     </PostBuildEvent>
     <Link>
@@ -91,14 +118,14 @@ COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)glew-2.0.0\include;$(SolutionDir)OculusSDK\LibOVR\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)glew-2.1.0\include;$(SolutionDir)OculusSDK\LibOVR\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SolutionDir)OculusSDK\LibOVR\Lib\Windows\x64\Release\VS2015;$(SolutionDir)glew-2.0.0\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)OculusSDK\LibOVR\Lib\Windows\x64\Release\VS2015;$(SolutionDir)glew-2.1.0\lib\Release\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;LibOVR.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>COPY /Y /V $(SolutionDir)glew-2.0.0\bin\Release\x64\glew32.dll $(OutDir)
+      <Command>COPY /Y /V $(SolutionDir)glew-2.1.0\bin\Release\x64\glew32.dll $(OutDir)
 COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -128,23 +155,6 @@ COPY /Y /V $(SolutionDir)smiley.bmp $(OutDir)</Command>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="frame.cpp" />
-    <ClCompile Include="Matrix44f.cpp" />
-    <ClCompile Include="ovr.cpp" />
-    <ClCompile Include="renderer.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="utils.cpp" />
-    <ClCompile Include="Vector4f.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="frame.h" />
-    <ClInclude Include="Matrix.h" />
-    <ClInclude Include="ovr.h" />
-    <ClInclude Include="renderer.h" />
-    <ClInclude Include="utils.h" />
-    <ClInclude Include="Vector.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

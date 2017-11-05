@@ -1,4 +1,4 @@
-#include <fstream>
+﻿#include <fstream>
 #include <vector>
 
 #include "utils.h"
@@ -10,7 +10,7 @@ void loadBmp(const char* filepath, std::vector<unsigned char>* outPixels, int* o
     if (!hFile.is_open()) throw std::invalid_argument("Error: File Not Found.");
 
     hFile.seekg(0, std::ios::end);
-    int length = hFile.tellg();
+    std::streampos length = hFile.tellg();
     hFile.seekg(0, std::ios::beg);
     std::vector<std::uint8_t> fileInfo(length);
     hFile.read(reinterpret_cast<char*>(fileInfo.data()), 54);
