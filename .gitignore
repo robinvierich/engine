@@ -1,6 +1,12 @@
+.vs/
 *.opendb
+
 Debug/
 Release/
-engine_project/Debug/
-engine_project/Release/
+
+main/Debug/
+main/Release/
+
 OculusSDK/LibOVR/Projects/Windows/VS2015/OVR_ForceRebuildNoCheckin.h
+
+
