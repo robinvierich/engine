@@ -1,5 +1,5 @@
 ﻿#include "Types.h"
-#include "Vector.h"
+#include "Math/Vector.h"
 
 
 float Vector4::Dot(Vector4& other) const
