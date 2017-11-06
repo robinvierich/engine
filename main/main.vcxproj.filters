@@ -33,6 +33,9 @@
     <ClCompile Include="src\Math\Matrix.cpp">
       <Filter>src\Math</Filter>
     </ClCompile>
+    <ClCompile Include="GLRenderer.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\frame.h">
@@ -60,6 +63,12 @@
       <Filter>src\Math</Filter>
     </ClInclude>
     <ClInclude Include="src\Math\Math.h">
+      <Filter>src\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="GLRenderer.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Math\Constants.h">
       <Filter>src\Math</Filter>
     </ClInclude>
   </ItemGroup>
