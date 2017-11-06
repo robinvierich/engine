@@ -12,6 +12,7 @@ private:
 public:
 
     static const Matrix4& Identity() { return s_identity; }
+    static Matrix4 Matrix4::CreateProjectionMatrix(const float fov, const float farPlane, const float nearPlane);
 
     Matrix4()
         : m_columns{}
