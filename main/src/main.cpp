@@ -1,4 +1,4 @@
-#include <windows.h>
+﻿#include <windows.h>
 #include <tchar.h>
 
 #include "utils.h"
@@ -7,13 +7,16 @@
 
 int windowWidth, windowHeight = 0;
 
-void resizeWindow(int w, int h) {
-	windowWidth = w;
-	windowHeight = h;
+void resizeWindow(int w, int h)
+{
+    windowWidth = w;
+    windowHeight = h;
 }
 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
         case WM_SIZE: // If our window is resizing  
         {
             // resize our opengl context
@@ -34,7 +37,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 int WINAPI WinMain(HINSTANCE hInstance,
                    HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine,
-                   int nCmdShow) {
+                   int nCmdShow)
+{
 
     static TCHAR szWindowClass[] = _T("win32app");
     static TCHAR szTitle[] = _T("OpenGL app");
@@ -52,11 +56,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
     wc.lpszMenuName = NULL;
     wc.lpszClassName = szWindowClass;
 
-    if (!RegisterClass(&wc)) {
+    if (!RegisterClass(&wc))
+    {
         MessageBox(NULL,
-            _T("Call to RegisterClassEx failed!"),
-            _T("ERROR"),
-            NULL);
+                   _T("Call to RegisterClassEx failed!"),
+                   _T("ERROR"),
+                   NULL);
 
         return 1;
     }
@@ -71,22 +76,22 @@ int WINAPI WinMain(HINSTANCE hInstance,
         NULL,
         hInstance,
         NULL
-        );
+    );
     if (!hWnd)
     {
         MessageBox(NULL,
-            _T("Call to CreateWindow failed!"),
-            _T("ERROR"),
-            NULL);
+                   _T("Call to CreateWindow failed!"),
+                   _T("ERROR"),
+                   NULL);
 
         return 1;
     }
 
-    
-	initRenderer(hWnd);
+
+    initRenderer(hWnd);
 
     ShowWindow(hWnd, nCmdShow);
-    
+
     resizeWindow(400, 225);
 
     UpdateWindow(hWnd);
@@ -97,36 +102,46 @@ int WINAPI WinMain(HINSTANCE hInstance,
     double t = 0;
     double dt = 0;
 
-    double desiredDt = 1 / 75.0;
-	
+    double desiredDt = 1 / 75.0f;
+
     LARGE_INTEGER prevCount;
     LARGE_INTEGER count;
     LARGE_INTEGER secondsPerCount;
-    
+
     QueryPerformanceCounter(&prevCount);
 
-	Frame currFrame;
+    Frame currFrame;
 
-    while (running) { 
-        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) { // if there is a message, and handle it (why don't we need to consume it?! -- as is done in GetMessage)
-            if (msg.message == WM_QUIT) {
+    while (running)
+    {
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        { // if there is a message, and handle it (why don't we need to consume it?! -- as is done in GetMessage)
+            if (msg.message == WM_QUIT)
+            {
                 running = false;
-            } else {
+            }
+            else
+            {
                 TranslateMessage(&msg);
                 DispatchMessage(&msg);
             }
-        } else { // if no message, render!
+        }
+        else
+        {
+            // if no message, render!
             QueryPerformanceFrequency(&secondsPerCount);
             QueryPerformanceCounter(&count);
 
-            if (count.QuadPart < prevCount.QuadPart) {
+            if (count.QuadPart < prevCount.QuadPart)
+            {
                 // overflow - worst case we skip 1 frame.. not ideal
                 prevCount = count;
                 continue;
             }
 
             dt = (double)(count.QuadPart - prevCount.QuadPart) / (double)secondsPerCount.QuadPart;
-            if (dt < desiredDt) {
+            if (dt < desiredDt)
+            {
                 continue;
             }
 
@@ -134,11 +149,11 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
             t += dt;
             prevCount = count;
-			currFrame.frameIndex++;
+            currFrame.frameIndex++;
         }
     }
 
-	shutdownRenderer();
+    shutdownRenderer();
 
     return (int)msg.wParam;
 }
