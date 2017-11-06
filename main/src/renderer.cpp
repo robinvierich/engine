@@ -1,4 +1,6 @@
-﻿#pragma comment(lib, "glew32.lib")
+﻿#if 0
+#pragma comment(lib, "glew32.lib")
+#endif
 
 #include <iostream>
 #include <sstream>
